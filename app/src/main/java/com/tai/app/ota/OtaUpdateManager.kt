@@ -41,8 +41,10 @@ sealed class OtaStatus {
 class OtaUpdateManager(private val context: Context) {
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
         .build()
 
     // Configurable repo: defaults to Aleff959/Tai
@@ -170,31 +172,50 @@ class OtaUpdateManager(private val context: Context) {
     }
 
     fun launchInstaller(apkFile: File) {
-        if (!apkFile.exists()) return
+        if (!apkFile.exists()) {
+            _status.value = OtaStatus.Error("Arquivo de instalação não encontrado.")
+            return
+        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!context.packageManager.canRequestPackageInstalls()) {
-                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            // Em Android 8.0+ (API 26+), verifica se tem permissão para instalar fontes desconhecidas
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                    return
                 }
-                context.startActivity(intent)
-                return
             }
-        }
 
-        val apkUri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            apkFile
-        )
+            val apkUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                apkFile
+            )
 
-        val installIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(apkUri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            // Concede permissão explícita para os gerenciadores de pacote que vão processar o URI
+            val resolveInfos = context.packageManager.queryIntentActivities(installIntent, 0)
+            for (info in resolveInfos) {
+                context.grantUriPermission(
+                    info.activityInfo.packageName,
+                    apkUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
+            context.startActivity(installIntent)
+        } catch (e: Exception) {
+            _status.value = OtaStatus.Error("Falha ao abrir instalador: ${e.message}")
         }
-        context.startActivity(installIntent)
     }
 
     private fun showUpdateNotification(title: String, message: String) {

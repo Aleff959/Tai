@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -115,7 +116,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 5 - Electro",
+                            text = "0.0.2 | Comp. 6 - Faísca",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -155,7 +156,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                     IconButton(
                         onClick = {
                             scope.launch {
-                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 5)
+                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 6)
                                 showOtaDialog = true
                             }
                         },
@@ -199,14 +200,14 @@ fun MainScreen(viewModel: DownloaderViewModel) {
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Badges das redes suportadas - alinhadas perfeitamente em 1 linha
+            // Badges das redes suportadas - com ícones oficiais
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                PlatformBadge(name = "TikTok", color = Color(0xFFFE2C55), modifier = Modifier.weight(1f))
-                PlatformBadge(name = "Reels", color = Color(0xFFE1306C), modifier = Modifier.weight(1f))
-                PlatformBadge(name = "X (Twitter)", color = Color(0xFF1DA1F2), modifier = Modifier.weight(1f))
+                PlatformBadge(name = "TikTok", iconRes = com.tai.app.R.drawable.ic_tiktok, tint = Color(0xFFFE2C55), modifier = Modifier.weight(1f))
+                PlatformBadge(name = "Reels", iconRes = com.tai.app.R.drawable.ic_instagram, tint = Color(0xFFE1306C), modifier = Modifier.weight(1f))
+                PlatformBadge(name = "X", iconRes = com.tai.app.R.drawable.ic_x_twitter, tint = Color.White, modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -730,7 +731,7 @@ private fun openDownloadsFolder(context: Context) {
 }
 
 @Composable
-fun PlatformBadge(name: String, color: Color, modifier: Modifier = Modifier) {
+fun PlatformBadge(name: String, iconRes: Int, tint: Color, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .height(42.dp)
@@ -743,10 +744,11 @@ fun PlatformBadge(name: String, color: Color, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(color, CircleShape)
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = name,
+                tint = tint,
+                modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
