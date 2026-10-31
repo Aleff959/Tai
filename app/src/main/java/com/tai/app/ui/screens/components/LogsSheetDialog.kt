@@ -33,14 +33,15 @@ fun LogsSheetDialog(
     onDismiss: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
+    val colors = LocalTaiColors.current
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.85f)
-                .background(PureBlack, shape = RoundedCornerShape(20.dp))
-                .border(1.dp, CardBorder, shape = RoundedCornerShape(20.dp))
+                .background(colors.surface, shape = RoundedCornerShape(20.dp))
+                .border(1.dp, colors.cardBorder, shape = RoundedCornerShape(20.dp))
                 .padding(16.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -52,7 +53,7 @@ fun LogsSheetDialog(
                 ) {
                     Text(
                         text = "Logs & Diagnóstico",
-                        color = TextPrimary,
+                        color = colors.textPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -74,7 +75,7 @@ fun LogsSheetDialog(
                             Icon(
                                 imageVector = Icons.Rounded.DeleteSweep,
                                 contentDescription = "Limpar Logs",
-                                tint = TextMuted,
+                                tint = colors.textMuted,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -83,7 +84,7 @@ fun LogsSheetDialog(
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = "Fechar",
-                                tint = TextPrimary,
+                                tint = colors.textPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -96,15 +97,15 @@ fun LogsSheetDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(DarkSurface, RoundedCornerShape(12.dp))
-                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                        .background(colors.surfaceVariant, RoundedCornerShape(12.dp))
+                        .border(1.dp, colors.cardBorder, RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
                     if (logs.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 text = "Nenhum log registrado ainda.",
-                                color = TextMuted,
+                                color = colors.textMuted,
                                 fontSize = 13.sp
                             )
                         }
@@ -114,7 +115,7 @@ fun LogsSheetDialog(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             items(logs) { entry ->
-                                LogItemRow(entry)
+                                LogItemRow(entry, colors)
                             }
                         }
                     }
@@ -125,7 +126,7 @@ fun LogsSheetDialog(
 }
 
 @Composable
-fun LogItemRow(entry: LogEntry) {
+fun LogItemRow(entry: LogEntry, colors: TaiColors = LocalTaiColors.current) {
     val levelColor = when (entry.level) {
         LogLevel.INFO -> NeonCyan
         LogLevel.ACTION -> NeonGreen
@@ -136,7 +137,7 @@ fun LogItemRow(entry: LogEntry) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = entry.timestamp,
-                color = TextMuted,
+                color = colors.textMuted,
                 fontSize = 10.sp,
                 fontFamily = FontFamily.Monospace
             )
@@ -151,7 +152,7 @@ fun LogItemRow(entry: LogEntry) {
         }
         Text(
             text = entry.message,
-            color = TextPrimary,
+            color = colors.textPrimary,
             fontSize = 12.sp,
             fontFamily = FontFamily.Monospace,
             lineHeight = 16.sp,

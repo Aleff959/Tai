@@ -48,6 +48,27 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
     private val synthesizer = VideoSynthesizer(application)
     val otaManager = OtaUpdateManager(application)
 
+    private val prefs = application.getSharedPreferences("tai_theme_prefs", android.content.Context.MODE_PRIVATE)
+    private val _themeMode = MutableStateFlow(
+        try {
+            com.tai.app.ui.theme.ThemeMode.valueOf(prefs.getString("theme_mode", com.tai.app.ui.theme.ThemeMode.SYSTEM.name) ?: com.tai.app.ui.theme.ThemeMode.SYSTEM.name)
+        } catch (_: Exception) {
+            com.tai.app.ui.theme.ThemeMode.SYSTEM
+        }
+    )
+    val themeMode: StateFlow<com.tai.app.ui.theme.ThemeMode> = _themeMode.asStateFlow()
+
+    fun toggleTheme() {
+        val nextMode = when (_themeMode.value) {
+            com.tai.app.ui.theme.ThemeMode.DARK -> com.tai.app.ui.theme.ThemeMode.LIGHT
+            com.tai.app.ui.theme.ThemeMode.LIGHT -> com.tai.app.ui.theme.ThemeMode.DARK
+            com.tai.app.ui.theme.ThemeMode.SYSTEM -> com.tai.app.ui.theme.ThemeMode.LIGHT
+        }
+        _themeMode.value = nextMode
+        prefs.edit().putString("theme_mode", nextMode.name).apply()
+        AppLogger.action("UI", "Tema alterado para: $nextMode")
+    }
+
     private val httpClient = OkHttpClient()
 
     private val _urlInput = MutableStateFlow("")

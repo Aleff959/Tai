@@ -3,7 +3,9 @@ package com.tai.app.core
 import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tai.app.ui.screens.MainScreen
 import com.tai.app.ui.theme.TaiTheme
 import com.tai.app.ui.viewmodel.DownloaderViewModel
@@ -32,7 +34,9 @@ class TaiCoreEntryImpl : TaiCoreEntry {
             }
         }
 
-        TaiTheme {
+        val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+
+        TaiTheme(themeMode = themeMode) {
             MainScreen(
                 viewModel = viewModel,
                 onHotReloadCore = onRequestCoreReload

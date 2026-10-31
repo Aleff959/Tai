@@ -24,12 +24,14 @@ fun PhotoAudioChoiceDialog(
     onChoiceVideoWithAudio: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val colors = LocalTaiColors.current
+
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(PureBlack, shape = RoundedCornerShape(20.dp))
-                .border(1.dp, CardBorder, shape = RoundedCornerShape(20.dp))
+                .background(colors.surface, shape = RoundedCornerShape(20.dp))
+                .border(1.dp, colors.cardBorder, shape = RoundedCornerShape(20.dp))
                 .padding(24.dp)
         ) {
             Column(
@@ -38,56 +40,26 @@ fun PhotoAudioChoiceDialog(
             ) {
                 Text(
                     text = "Foto com Áudio",
-                    color = TextPrimary,
+                    color = colors.textPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
                     text = "Detectamos que este post possui uma foto e trilha de áudio. Como deseja baixar?",
-                    color = TextSecondary,
+                    color = colors.textSecondary,
                     fontSize = 14.sp,
                     lineHeight = 20.sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Opção 1: Apenas Foto
-                OutlinedButton(
-                    onClick = onChoicePhotoOnly,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TextPrimary
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Image,
-                        contentDescription = null,
-                        tint = NeonCyan,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Apenas a Foto (JPG)",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                // Opção 2: Vídeo com Áudio
                 Button(
                     onClick = onChoiceVideoWithAudio,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NeonGreen,
                         contentColor = PureBlack
-                    )
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Audiotrack,
@@ -97,16 +69,36 @@ fun PhotoAudioChoiceDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Vídeo (Foto + Áudio completo)",
-                        fontWeight = FontWeight.Bold
+                        text = "Vídeo com Áudio (MP4)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
                     )
                 }
 
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
+                OutlinedButton(
+                    onClick = onChoicePhotoOnly,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = colors.textPrimary
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, colors.cardBorder)
                 ) {
-                    Text(text = "Cancelar", color = TextMuted)
+                    Icon(
+                        imageVector = Icons.Rounded.Image,
+                        contentDescription = null,
+                        tint = NeonCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Apenas Foto (JPG)",
+                        fontSize = 14.sp
+                    )
+                }
+
+                TextButton(onClick = onDismiss) {
+                    Text(text = "Cancelar", color = colors.textMuted)
                 }
             }
         }

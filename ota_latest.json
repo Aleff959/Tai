@@ -1,10 +1,10 @@
 {
   "version": "0.0.2",
-  "comp": 16,
-  "tagName": "v0.0.2_Comp16",
-  "releaseName": "Taí! 0.0.2 | Comp. 16 - Pierce (Beta)",
-  "notes": "Atualização modular instantânea via Two-Stage Core (taicore.dex) - Comp. 16 - Pierce (Sem Play Protect)!",
-  "dexUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp16/taicore.dex",
-  "apkUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp16/Tai_0.0.2_Comp16.apk",
-  "apkName": "Tai_0.0.2_Comp16.apk"
+  "comp": 17,
+  "tagName": "v0.0.2_Comp17",
+  "releaseName": "Taí! 0.0.2 | Comp. 17 - Quicksilver (Beta)",
+  "notes": "Adicionado suporte completo a Tema Claro (Light Mode) com botão no topo e paleta suave!",
+  "dexUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp17/taicore.dex",
+  "apkUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp17/Tai_0.0.2_Comp17.apk",
+  "apkName": "Tai_0.0.2_Comp17.apk"
 }

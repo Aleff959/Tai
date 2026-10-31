@@ -52,12 +52,14 @@ fun MainScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
+    val colors = LocalTaiColors.current
 
     val urlInput by viewModel.urlInput.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val pendingPhotoWithAudio by viewModel.pendingPhotoWithAudio.collectAsStateWithLifecycle()
     val otaStatus by viewModel.otaManager.status.collectAsStateWithLifecycle()
     val logs by AppLogger.logs.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
     var showOtaDialog by remember { mutableStateOf(false) }
     var showLogsDialog by remember { mutableStateOf(false) }
@@ -82,7 +84,7 @@ fun MainScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PureBlack)
+            .background(colors.background)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -105,7 +107,7 @@ fun MainScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "Taí!",
-                            color = TextPrimary,
+                            color = colors.textPrimary,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = (-0.5).sp
@@ -120,7 +122,7 @@ fun MainScreen(
                     }
 
                     Surface(
-                        color = DarkSurfaceVariant,
+                        color = colors.surfaceVariant,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
@@ -134,14 +136,30 @@ fun MainScreen(
                     }
                 }
 
-                // Ações do cabeçalho
+                // Ações do cabeçalho: Tema Claro/Escuro, Logs e Atualizações
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Botão Alternar Tema (Claro / Escuro)
+                    IconButton(
+                        onClick = { viewModel.toggleTheme() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(colors.surfaceVariant, CircleShape)
+                            .border(1.dp, colors.cardBorder, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = if (colors.isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                            contentDescription = if (colors.isDark) "Ativar Modo Claro" else "Ativar Modo Escuro",
+                            tint = if (colors.isDark) Color(0xFFFFD54F) else Color(0xFF6366F1),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
                     IconButton(
                         onClick = { showLogsDialog = true },
                         modifier = Modifier
                             .size(44.dp)
-                            .background(DarkSurfaceVariant, CircleShape)
-                            .border(1.dp, CardBorder, CircleShape)
+                            .background(colors.surfaceVariant, CircleShape)
+                            .border(1.dp, colors.cardBorder, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Terminal,
@@ -171,10 +189,10 @@ fun MainScreen(
                         },
                         modifier = Modifier
                             .size(44.dp)
-                            .background(DarkSurfaceVariant, CircleShape)
+                            .background(colors.surfaceVariant, CircleShape)
                             .border(
                                 width = if (hasUpdate) 1.5.dp else 1.dp,
-                                color = if (hasUpdate) NeonGreen.copy(alpha = updatePulseAlpha) else CardBorder,
+                                color = if (hasUpdate) NeonGreen.copy(alpha = updatePulseAlpha) else colors.cardBorder,
                                 shape = CircleShape
                             )
                     ) {
@@ -186,12 +204,11 @@ fun MainScreen(
                                     tint = NeonGreen,
                                     modifier = Modifier.size(22.dp)
                                 )
-                                // Ponto de notificação pulsante no topo do ícone
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
                                         .background(NeonGreen.copy(alpha = updatePulseAlpha), CircleShape)
-                                        .border(1.5.dp, PureBlack, CircleShape)
+                                        .border(1.5.dp, colors.background, CircleShape)
                                         .align(Alignment.TopEnd)
                                 )
                             }
@@ -199,7 +216,7 @@ fun MainScreen(
                             Icon(
                                 imageVector = Icons.Rounded.CloudDownload,
                                 contentDescription = "Checar Atualizações",
-                                tint = TextSecondary,
+                                tint = colors.textSecondary,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -209,14 +226,14 @@ fun MainScreen(
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Badges das 4 redes suportadas - com ícones oficiais
+            // Badges das redes suportadas
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 PlatformBadge(name = "TikTok", iconRes = com.tai.app.R.drawable.ic_tiktok, tint = Color(0xFFFE2C55), modifier = Modifier.weight(1f))
                 PlatformBadge(name = "Reels", iconRes = com.tai.app.R.drawable.ic_instagram, tint = Color(0xFFE1306C), modifier = Modifier.weight(1f))
-                PlatformBadge(name = "X", iconRes = com.tai.app.R.drawable.ic_x_twitter, tint = Color.White, modifier = Modifier.weight(1f))
+                PlatformBadge(name = "X", iconRes = com.tai.app.R.drawable.ic_x_twitter, tint = if (colors.isDark) Color.White else Color.Black, modifier = Modifier.weight(1f))
                 PlatformBadge(name = "YouTube", iconRes = com.tai.app.R.drawable.ic_youtube, tint = Color(0xFFFF0000), modifier = Modifier.weight(1f))
             }
 
@@ -226,8 +243,8 @@ fun MainScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurface, RoundedCornerShape(16.dp))
-                    .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+                    .background(colors.surface, RoundedCornerShape(16.dp))
+                    .border(1.dp, colors.cardBorder, RoundedCornerShape(16.dp))
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Row(
@@ -237,7 +254,7 @@ fun MainScreen(
                     Icon(
                         imageVector = Icons.Rounded.Link,
                         contentDescription = null,
-                        tint = TextSecondary,
+                        tint = colors.textSecondary,
                         modifier = Modifier.size(24.dp)
                     )
 
@@ -249,7 +266,7 @@ fun MainScreen(
                         placeholder = {
                             Text(
                                 text = "Cole o link do post aqui...",
-                                color = TextMuted,
+                                color = colors.textMuted,
                                 fontSize = 14.sp
                             )
                         },
@@ -259,8 +276,8 @@ fun MainScreen(
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent,
                             cursorColor = NeonGreen,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary
                         ),
                         modifier = Modifier.weight(1f),
                         singleLine = true
@@ -271,7 +288,7 @@ fun MainScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = "Limpar",
-                                tint = TextMuted,
+                                tint = colors.textMuted,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -286,7 +303,7 @@ fun MainScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = DarkSurfaceVariant,
+                            containerColor = colors.surfaceVariant,
                             contentColor = NeonCyan
                         ),
                         shape = RoundedCornerShape(10.dp),
@@ -323,8 +340,8 @@ fun MainScreen(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = NeonGreen,
                     contentColor = PureBlack,
-                    disabledContainerColor = DarkSurfaceVariant,
-                    disabledContentColor = TextMuted
+                    disabledContainerColor = colors.surfaceVariant,
+                    disabledContentColor = colors.textMuted
                 )
             ) {
                 if (isDownloading) {
@@ -367,14 +384,14 @@ fun MainScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(DarkSurface, RoundedCornerShape(16.dp))
-                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+                                .background(colors.surface, RoundedCornerShape(16.dp))
+                                .border(1.dp, colors.cardBorder, RoundedCornerShape(16.dp))
                                 .padding(20.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = state.message,
-                                    color = TextPrimary,
+                                    color = colors.textPrimary,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -389,12 +406,12 @@ fun MainScreen(
                                             .height(8.dp)
                                             .clip(RoundedCornerShape(4.dp)),
                                         color = NeonGreen,
-                                        trackColor = DarkSurfaceVariant
+                                        trackColor = colors.surfaceVariant
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = "${state.progress}%",
-                                        color = TextSecondary,
+                                        color = colors.textSecondary,
                                         fontSize = 12.sp
                                     )
                                 } else {
@@ -404,7 +421,7 @@ fun MainScreen(
                                             .height(6.dp)
                                             .clip(RoundedCornerShape(3.dp)),
                                         color = NeonCyan,
-                                        trackColor = DarkSurfaceVariant
+                                        trackColor = colors.surfaceVariant
                                     )
                                 }
                             }
@@ -415,7 +432,7 @@ fun MainScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(DarkSurface, RoundedCornerShape(16.dp))
+                                .background(colors.surface, RoundedCornerShape(16.dp))
                                 .border(1.dp, NeonGreen.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                 .padding(20.dp)
                         ) {
@@ -431,7 +448,7 @@ fun MainScreen(
 
                                 Text(
                                     text = "Download Concluído!",
-                                    color = TextPrimary,
+                                    color = colors.textPrimary,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -440,7 +457,7 @@ fun MainScreen(
 
                                 Text(
                                     text = state.message,
-                                    color = TextSecondary,
+                                    color = colors.textSecondary,
                                     fontSize = 13.sp,
                                     textAlign = TextAlign.Center
                                 )
@@ -484,10 +501,10 @@ fun MainScreen(
                                         onClick = {
                                             shareMedia(context, state.file, state.uri, state.mimeType)
                                         },
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary),
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f).height(42.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                                        border = BorderStroke(1.dp, colors.cardBorder)
                                     ) {
                                         Icon(imageVector = Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = NeonCyan)
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -498,14 +515,14 @@ fun MainScreen(
                                         onClick = {
                                             openDownloadsFolder(context)
                                         },
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.textPrimary),
                                         shape = RoundedCornerShape(12.dp),
                                         modifier = Modifier.weight(1f).height(42.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                                        border = BorderStroke(1.dp, colors.cardBorder)
                                     ) {
-                                        Icon(imageVector = Icons.Rounded.Folder, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextSecondary)
+                                        Icon(imageVector = Icons.Rounded.Folder, contentDescription = null, modifier = Modifier.size(16.dp), tint = NeonCyan)
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Ver na Pasta", fontSize = 12.sp)
+                                        Text("Ver Pasta", fontSize = 12.sp)
                                     }
                                 }
                             }
@@ -516,7 +533,7 @@ fun MainScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(DarkSurface, RoundedCornerShape(16.dp))
+                                .background(colors.surface, RoundedCornerShape(16.dp))
                                 .border(1.dp, ErrorRed.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                 .padding(18.dp)
                         ) {
@@ -531,7 +548,7 @@ fun MainScreen(
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
                                         text = state.message,
-                                        color = TextPrimary,
+                                        color = colors.textPrimary,
                                         fontSize = 13.sp,
                                         lineHeight = 18.sp,
                                         modifier = Modifier.weight(1f)
@@ -576,13 +593,13 @@ fun MainScreen(
                 Icon(
                     imageVector = Icons.Rounded.FolderOpen,
                     contentDescription = null,
-                    tint = TextMuted,
+                    tint = colors.textMuted,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = "Arquivos salvos em: Download/Tai/",
-                    color = TextMuted,
+                    color = colors.textMuted,
                     fontSize = 12.sp
                 )
             }
@@ -600,11 +617,11 @@ fun MainScreen(
             trailingAction = {
                 Surface(
                     onClick = { viewModel.toggleUpdateChannel() },
-                    color = if (isBeta) Color(0xFF241A0E) else Color(0xFF1A1F33),
+                    color = if (isBeta) Color(0xFF241A0E) else colors.surfaceVariant,
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(
                         width = 1.dp,
-                        color = if (isBeta) Color(0xFFFF9800) else Color(0xFF333D63)
+                        color = if (isBeta) Color(0xFFFF9800) else colors.cardBorder
                     ),
                     modifier = Modifier
                         .height(24.dp)
@@ -638,7 +655,7 @@ fun MainScreen(
         promptOpenGalleryForState?.let { successState ->
             AlertDialog(
                 onDismissRequest = { promptOpenGalleryForState = null },
-                containerColor = PureBlack,
+                containerColor = colors.surface,
                 shape = RoundedCornerShape(20.dp),
                 icon = {
                     Icon(
@@ -651,23 +668,26 @@ fun MainScreen(
                 title = {
                     Text(
                         text = "Abrir na Galeria?",
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        color = colors.textPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 text = {
                     Text(
-                        text = "O download foi concluído com sucesso. Deseja visualizar agora na galeria do seu celular?",
-                        color = TextSecondary,
-                        fontSize = 13.sp
+                        text = "Deseja visualizar o arquivo baixado agora mesmo na galeria do seu celular?",
+                        color = colors.textSecondary,
+                        fontSize = 14.sp
                     )
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            openInGallery(context, successState.file, successState.uri, successState.mimeType)
+                            val state = promptOpenGalleryForState
                             promptOpenGalleryForState = null
+                            if (state != null) {
+                                openInGallery(context, state.file, state.uri, state.mimeType)
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = PureBlack),
                         shape = RoundedCornerShape(10.dp)
@@ -677,14 +697,13 @@ fun MainScreen(
                 },
                 dismissButton = {
                     TextButton(onClick = { promptOpenGalleryForState = null }) {
-                        Text("Agora não", color = TextMuted)
+                        Text("Depois", color = colors.textMuted)
                     }
-                },
-                modifier = Modifier.border(1.dp, CardBorder, RoundedCornerShape(20.dp))
+                }
             )
         }
 
-        // Diálogo de Logs & Diagnóstico
+        // Diálogo Logs
         if (showLogsDialog) {
             LogsSheetDialog(
                 logs = logs,
@@ -747,39 +766,54 @@ private fun shareMedia(context: Context, file: File?, mediaUri: Uri?, mimeType: 
             return
         }
 
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+        AppLogger.action("UI", "Compartilhando mídia: $targetUri")
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
             type = mimeType
             putExtra(Intent.EXTRA_STREAM, targetUri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(Intent.createChooser(shareIntent, "Compartilhar mídia"))
+
+        context.startActivity(Intent.createChooser(intent, "Compartilhar mídia"))
     } catch (e: Exception) {
-        AppLogger.e("UI", "Erro ao compartilhar", e)
+        AppLogger.e("UI", "Erro ao compartilhar mídia", e)
     }
 }
 
 private fun openDownloadsFolder(context: Context) {
     try {
+        AppLogger.action("UI", "Abrindo pasta de downloads do Taí")
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(Uri.parse("content://media/external/file"), "*/*")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        context.startActivity(intent)
-    } catch (_: Exception) {}
+        context.startActivity(Intent.createChooser(intent, "Abrir pasta de downloads"))
+    } catch (_: Exception) {
+        try {
+            val genericIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "*/*"
+                addCategory(Intent.CATEGORY_OPENABLE)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(genericIntent)
+        } catch (e: Exception) {
+            AppLogger.e("UI", "Não foi possível abrir o gerenciador de arquivos", e)
+        }
+    }
 }
 
 @Composable
 fun PlatformBadge(name: String, iconRes: Int, tint: Color, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .height(42.dp)
-            .background(DarkSurface, RoundedCornerShape(12.dp))
-            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
-            .padding(horizontal = 8.dp),
-        contentAlignment = Alignment.Center
+    val colors = LocalTaiColors.current
+    Surface(
+        color = colors.surface,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, colors.cardBorder),
+        modifier = modifier.height(38.dp)
     ) {
         Row(
+            modifier = Modifier.padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -792,7 +826,7 @@ fun PlatformBadge(name: String, iconRes: Int, tint: Color, modifier: Modifier = 
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = name,
-                color = TextSecondary,
+                color = colors.textSecondary,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -809,12 +843,13 @@ fun OtaDialog(
     onInstall: (java.io.File) -> Unit,
     onDownload: (String, String, Int, Boolean) -> Unit
 ) {
+    val colors = LocalTaiColors.current
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(PureBlack, shape = RoundedCornerShape(20.dp))
-                .border(1.dp, CardBorder, shape = RoundedCornerShape(20.dp))
+                .background(colors.surface, shape = RoundedCornerShape(20.dp))
+                .border(1.dp, colors.cardBorder, shape = RoundedCornerShape(20.dp))
                 .padding(24.dp)
         ) {
             Column(
@@ -824,18 +859,18 @@ fun OtaDialog(
                 when (status) {
                     is OtaStatus.Checking -> {
                         CircularProgressIndicator(color = NeonCyan)
-                        Text(text = "Verificando atualizações...", color = TextPrimary)
+                        Text(text = "Verificando atualizações...", color = colors.textPrimary)
                     }
                     is OtaStatus.UpToDate -> {
                         Icon(imageVector = Icons.Rounded.CheckCircle, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(40.dp))
-                        Text(text = "Você já está na versão mais recente!", color = TextPrimary, fontWeight = FontWeight.Bold)
-                        TextButton(onClick = onDismiss) { Text("Fechar", color = TextSecondary) }
+                        Text(text = "Você já está na versão mais recente!", color = colors.textPrimary, fontWeight = FontWeight.Bold)
+                        TextButton(onClick = onDismiss) { Text("Fechar", color = colors.textSecondary) }
                     }
                     is OtaStatus.UpdateAvailable -> {
                         Icon(imageVector = Icons.Rounded.SystemUpdate, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(40.dp))
-                        Text(text = "Nova Versão Disponível!", color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Nova Versão Disponível!", color = colors.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text(text = status.title, color = NeonCyan, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        Text(text = status.changelog, color = TextSecondary, fontSize = 12.sp, maxLines = 5)
+                        Text(text = status.changelog, color = colors.textSecondary, fontSize = 12.sp, maxLines = 5)
 
                         if (status.isHotSwap) {
                             Text(
@@ -858,20 +893,20 @@ fun OtaDialog(
                             )
                         }
 
-                        TextButton(onClick = onDismiss) { Text("Depois", color = TextMuted) }
+                        TextButton(onClick = onDismiss) { Text("Depois", color = colors.textMuted) }
                     }
                     is OtaStatus.Downloading -> {
-                        Text(text = "Baixando atualização (${status.progressPercent}%)...", color = TextPrimary)
+                        Text(text = "Baixando atualização (${status.progressPercent}%)...", color = colors.textPrimary)
                         LinearProgressIndicator(
                             progress = { status.progressPercent / 100f },
                             color = NeonGreen,
-                            trackColor = DarkSurfaceVariant,
+                            trackColor = colors.surfaceVariant,
                             modifier = Modifier.fillMaxWidth().height(8.dp)
                         )
                     }
                     is OtaStatus.ReadyToInstall -> {
                         Icon(imageVector = Icons.Rounded.DownloadDone, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(40.dp))
-                        Text(text = "Download Concluído!", color = TextPrimary, fontWeight = FontWeight.Bold)
+                        Text(text = "Download Concluído!", color = colors.textPrimary, fontWeight = FontWeight.Bold)
                         Button(
                             onClick = { onInstall(status.apkFile) },
                             colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = PureBlack),
@@ -883,11 +918,11 @@ fun OtaDialog(
                     }
                     is OtaStatus.Error -> {
                         Icon(imageVector = Icons.Rounded.ErrorOutline, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(40.dp))
-                        Text(text = status.message, color = TextPrimary, textAlign = TextAlign.Center)
-                        TextButton(onClick = onDismiss) { Text("Fechar", color = TextSecondary) }
+                        Text(text = status.message, color = colors.textPrimary, textAlign = TextAlign.Center)
+                        TextButton(onClick = onDismiss) { Text("Fechar", color = colors.textSecondary) }
                     }
                     else -> {
-                        TextButton(onClick = onDismiss) { Text("Fechar", color = TextSecondary) }
+                        TextButton(onClick = onDismiss) { Text("Fechar", color = colors.textSecondary) }
                     }
                 }
             }
