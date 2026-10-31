@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
@@ -58,9 +59,39 @@ class OtaUpdateManager(private val context: Context) {
         _status.value = OtaStatus.Idle
     }
 
-    suspend fun checkForUpdates(currentVersion: String = "0.0.1", currentComp: Int = 1) = withContext(Dispatchers.IO) {
+    private fun getLocalAppVersion(): Pair<String, Int> {
+        return try {
+            val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(context.packageName, 0)
+            }
+            val vName = pInfo.versionName ?: "0.0.1"
+            val vCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pInfo.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                pInfo.versionCode
+            }
+            Pair(vName, vCode)
+        } catch (_: Exception) {
+            Pair("0.0.1", 1)
+        }
+    }
+
+    suspend fun checkForUpdates(
+        providedVersion: String? = null,
+        providedComp: Int? = null
+    ) = withContext(Dispatchers.IO) {
         _status.value = OtaStatus.Checking
         try {
+            val (currentVersion, currentComp) = if (providedVersion != null && providedComp != null) {
+                Pair(providedVersion, providedComp)
+            } else {
+                getLocalAppVersion()
+            }
+
             val url = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
             val request = Request.Builder()
                 .url(url)
@@ -116,7 +147,14 @@ class OtaUpdateManager(private val context: Context) {
                     downloadUrl = apkUrl,
                     assetName = apkName
                 )
-                showUpdateNotification(releaseName, "Nova versão disponível: $releaseName. Toque para atualizar.")
+
+                // Previne repetição contínua de notificação para a mesma versão
+                val prefs = context.getSharedPreferences("ota_prefs", Context.MODE_PRIVATE)
+                val lastNotified = prefs.getString("last_notified_release", "")
+                if (lastNotified != cleanTag) {
+                    showUpdateNotification(releaseName, "Nova versão disponível: $releaseName. Toque para atualizar.")
+                    prefs.edit().putString("last_notified_release", cleanTag).apply()
+                }
             } else {
                 _status.value = OtaStatus.UpToDate
             }

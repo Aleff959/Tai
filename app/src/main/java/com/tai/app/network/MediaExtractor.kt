@@ -24,6 +24,10 @@ class MediaExtractor(private val context: Context? = null) {
 
     private val modularManager = context?.let { ModularExtractorManager(it) }
 
+    suspend fun checkDynamicUpdates() {
+        modularManager?.checkAndUpdateModule()
+    }
+
     suspend fun extract(rawUrl: String): MediaItem = withContext(Dispatchers.IO) {
         val cleanUrl = sanitizeUrl(rawUrl)
 
