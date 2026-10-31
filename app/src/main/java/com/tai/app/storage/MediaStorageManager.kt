@@ -24,6 +24,10 @@ class MediaStorageManager(private val context: Context) {
 
     private val folderName = "Tai"
 
+    private fun sanitizeFileName(name: String): String {
+        return name.replace(Regex("""[\\/:*?"<>|\s]+"""), "_")
+    }
+
     fun getTargetDirectory(): File {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val taiDir = File(downloadsDir, folderName)
@@ -40,8 +44,9 @@ class MediaStorageManager(private val context: Context) {
         contentLength: Long = -1L,
         onProgress: (Int) -> Unit = {}
     ): SavedMediaResult = withContext(Dispatchers.IO) {
+        val safeName = sanitizeFileName(fileName)
         val targetDir = getTargetDirectory()
-        val targetFile = File(targetDir, fileName)
+        val targetFile = File(targetDir, safeName)
 
         // Grava fisicamente no disco na pasta Download/Tai/
         FileOutputStream(targetFile).use { output ->
@@ -54,7 +59,7 @@ class MediaStorageManager(private val context: Context) {
             try {
                 val resolver = context.contentResolver
                 val contentValues = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    put(MediaStore.Downloads.DISPLAY_NAME, safeName)
                     put(MediaStore.Downloads.MIME_TYPE, mimeType)
                     put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$folderName")
                 }
@@ -82,8 +87,9 @@ class MediaStorageManager(private val context: Context) {
         targetFileName: String,
         mimeType: String
     ): SavedMediaResult = withContext(Dispatchers.IO) {
+        val safeName = sanitizeFileName(targetFileName)
         val targetDir = getTargetDirectory()
-        val targetFile = File(targetDir, targetFileName)
+        val targetFile = File(targetDir, safeName)
 
         sourceFile.copyTo(targetFile, overwrite = true)
 
@@ -92,7 +98,7 @@ class MediaStorageManager(private val context: Context) {
             try {
                 val resolver = context.contentResolver
                 val contentValues = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, targetFileName)
+                    put(MediaStore.Downloads.DISPLAY_NAME, safeName)
                     put(MediaStore.Downloads.MIME_TYPE, mimeType)
                     put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$folderName")
                 }

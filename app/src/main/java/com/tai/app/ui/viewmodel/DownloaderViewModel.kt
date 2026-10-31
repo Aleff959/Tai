@@ -60,9 +60,9 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
     val pendingPhotoWithAudio: StateFlow<MediaItem?> = _pendingPhotoWithAudio.asStateFlow()
 
     init {
-        AppLogger.i("ViewModel", "DownloaderViewModel inicializado (0.0.1 | Comp. 2 - Boitatá)")
+        AppLogger.i("ViewModel", "DownloaderViewModel inicializado (0.0.2 | Comp. 4 - Darui)")
         viewModelScope.launch {
-            otaManager.checkForUpdates(currentVersion = "0.0.1", currentComp = 2)
+            otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 4)
         }
     }
 
@@ -151,6 +151,10 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    private fun safePlatformName(platform: String): String {
+        return platform.replace(Regex("""[\\/:*?"<>|\s]+"""), "_")
+    }
+
     private suspend fun downloadVideo(item: MediaItem) = withContext(Dispatchers.IO) {
         val rawVideoUrl = item.videoUrl ?: throw Exception("URL do vídeo não encontrada")
         val videoUrl = safeUrl(rawVideoUrl)
@@ -163,7 +167,7 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
 
         val body = response.body ?: throw Exception("Corpo da resposta vazio")
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "Tai_${item.sourcePlatform}_$timestamp.mp4"
+        val fileName = "Tai_${safePlatformName(item.sourcePlatform)}_$timestamp.mp4"
 
         val saved = storageManager.saveMediaStream(
             inputStream = body.byteStream(),
@@ -176,11 +180,11 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
 
         AppLogger.i("Storage", "Vídeo salvo com sucesso: $fileName -> ${saved.file.absolutePath}")
         _downloadState.value = DownloadState.Success(
-            message = "Vídeo salvo em Download/Tai/$fileName",
+            message = "Vídeo salvo em Download/Tai/${saved.file.name}",
             uri = saved.uri,
             file = saved.file,
             mimeType = "video/mp4",
-            fileName = fileName
+            fileName = saved.file.name
         )
     }
 
@@ -196,7 +200,7 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
 
         val body = response.body ?: throw Exception("Corpo da resposta vazio")
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "Tai_${item.sourcePlatform}_$timestamp.jpg"
+        val fileName = "Tai_${safePlatformName(item.sourcePlatform)}_$timestamp.jpg"
 
         val saved = storageManager.saveMediaStream(
             inputStream = body.byteStream(),
@@ -209,11 +213,11 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
 
         AppLogger.i("Storage", "Foto salva com sucesso: $fileName -> ${saved.file.absolutePath}")
         _downloadState.value = DownloadState.Success(
-            message = "Foto salva em Download/Tai/$fileName",
+            message = "Foto salva em Download/Tai/${saved.file.name}",
             uri = saved.uri,
             file = saved.file,
             mimeType = "image/jpeg",
-            fileName = fileName
+            fileName = saved.file.name
         )
     }
 
@@ -225,6 +229,7 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         var savedCount = 0
         var firstSaved: SavedMediaResult? = null
+        val platformSafe = safePlatformName(item.sourcePlatform)
 
         item.imageUrls.forEachIndexed { index, rawImgUrl ->
             try {
@@ -234,7 +239,7 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
                 if (response.isSuccessful) {
                     val body = response.body
                     if (body != null) {
-                        val fileName = "Tai_${item.sourcePlatform}_${timestamp}_${index + 1}.jpg"
+                        val fileName = "Tai_${platformSafe}_${timestamp}_${index + 1}.jpg"
                         val result = storageManager.saveMediaStream(
                             inputStream = body.byteStream(),
                             fileName = fileName,
@@ -307,7 +312,7 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
 
         // 4. Salva em Download/Tai/
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "Tai_${item.sourcePlatform}_synced_$timestamp.mp4"
+        val fileName = "Tai_${safePlatformName(item.sourcePlatform)}_synced_$timestamp.mp4"
 
         val saved = storageManager.saveLocalFile(tempVideo, fileName, "video/mp4")
 
@@ -318,11 +323,11 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
 
         AppLogger.i("Storage", "Vídeo sintetizado salvo com sucesso: $fileName -> ${saved.file.absolutePath}")
         _downloadState.value = DownloadState.Success(
-            message = "Vídeo com som salvo em Download/Tai/$fileName",
+            message = "Vídeo com som salvo em Download/Tai/${saved.file.name}",
             uri = saved.uri,
             file = saved.file,
             mimeType = "video/mp4",
-            fileName = fileName
+            fileName = saved.file.name
         )
     }
 }

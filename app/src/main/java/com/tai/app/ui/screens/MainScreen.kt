@@ -30,6 +30,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tai.app.ota.OtaStatus
+import com.tai.app.ui.screens.components.CatCompanionWidget
 import com.tai.app.ui.screens.components.LogsSheetDialog
 import com.tai.app.ui.screens.components.PhotoAudioChoiceDialog
 import com.tai.app.ui.theme.*
@@ -113,7 +114,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.1 | Comp. 2 - Boitatá",
+                            text = "0.0.2 | Comp. 4 - Darui",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -142,7 +143,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                     IconButton(
                         onClick = {
                             scope.launch {
-                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.1", currentComp = 2)
+                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 4)
                                 showOtaDialog = true
                             }
                         },
@@ -557,8 +558,14 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Espaço inferior para não ficar atrás do gatinho
+            Spacer(modifier = Modifier.height(180.dp))
         }
+
+        // Gatinho Companion interativo fixo na parte de baixo do app
+        CatCompanionWidget(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
 
         // Diálogo para post com 1 foto e áudio
         if (pendingPhotoWithAudio != null) {
