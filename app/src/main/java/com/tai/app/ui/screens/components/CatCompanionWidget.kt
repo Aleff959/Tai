@@ -271,7 +271,10 @@ private class CatParticle(
 )
 
 @Composable
-fun CatCompanionWidget(modifier: Modifier = Modifier) {
+fun CatCompanionWidget(
+    modifier: Modifier = Modifier,
+    trailingAction: @Composable (() -> Unit)? = null
+) {
     val stageW = 124
     val stageH = 44
     val sprW = 32
@@ -1108,6 +1111,17 @@ fun CatCompanionWidget(modifier: Modifier = Modifier) {
                         tint = if (isManualControl) Color.White else NeonCyan,
                         modifier = Modifier.size(16.dp)
                     )
+                }
+            }
+
+            // Ação no extremo inferior direito (mesma altura e alinhamento da barra)
+            if (trailingAction != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 12.dp)
+                ) {
+                    trailingAction()
                 }
             }
         }

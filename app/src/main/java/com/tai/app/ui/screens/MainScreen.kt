@@ -117,7 +117,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 10 - Juice",
+                            text = "0.0.2 | Comp. 11 - Kaldur'ahm",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -583,48 +583,39 @@ fun MainScreen(viewModel: DownloaderViewModel) {
             Spacer(modifier = Modifier.height(180.dp))
         }
 
-        // Gatinho Companion interativo fixo na parte de baixo do app
-        CatCompanionWidget(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
-
-        // Botão no extremo inferior direito para alternar entre Estável e Beta
+        // Gatinho Companion interativo fixo na parte de baixo do app com o botão de canal na mesma barra
         val currentChannel by viewModel.updateChannel.collectAsState()
         val isBeta = currentChannel == "beta"
 
-        Surface(
-            onClick = { viewModel.toggleUpdateChannel() },
-            color = if (isBeta) Color(0xFF241A0E) else DarkSurfaceVariant,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(
-                width = 1.dp,
-                color = if (isBeta) Color(0xFFFF9800) else CardBorder
-            ),
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Box(
+        CatCompanionWidget(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            trailingAction = {
+                Surface(
+                    onClick = { viewModel.toggleUpdateChannel() },
+                    color = if (isBeta) Color(0xFF241A0E) else Color(0xFF1A1F33),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (isBeta) Color(0xFFFF9800) else Color(0xFF333D63)
+                    ),
                     modifier = Modifier
-                        .size(7.dp)
-                        .background(
-                            color = if (isBeta) Color(0xFFFF9800) else NeonGreen,
-                            shape = CircleShape
+                        .height(24.dp)
+                        .defaultMinSize(minWidth = 32.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.padding(horizontal = 6.dp)
+                    ) {
+                        Text(
+                            text = if (isBeta) "Beta" else "Estável",
+                            color = if (isBeta) Color(0xFFFFB74D) else NeonCyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                )
-                Text(
-                    text = if (isBeta) "Beta" else "Estável",
-                    color = if (isBeta) Color(0xFFFFB74D) else TextPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                    }
+                }
             }
-        }
+        )
 
         // Diálogo para post com 1 foto e áudio
         if (pendingPhotoWithAudio != null) {
