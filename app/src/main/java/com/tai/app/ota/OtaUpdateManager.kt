@@ -99,59 +99,97 @@ class OtaUpdateManager(private val context: Context) {
                 getLocalAppVersion()
             }
 
-            val url = if (channel == "beta") {
-                "https://api.github.com/repos/$repoOwner/$repoName/releases?per_page=1"
-            } else {
-                "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
-            }
-            val request = Request.Builder()
-                .url(url)
-                .header("Accept", "application/vnd.github.v3+json")
-                .header("User-Agent", "Tai-Android-App")
-                .build()
+            val branch = if (channel == "beta") "beta" else "main"
+            val cdnManifestUrl = "https://raw.githubusercontent.com/$repoOwner/$repoName/$branch/ota_latest.json"
 
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) {
-                if (response.code == 404) {
-                    _status.value = OtaStatus.UpToDate
-                } else {
-                    _status.value = OtaStatus.Error("Erro ao buscar atualizações (HTTP ${response.code})")
-                }
-                return@withContext
-            }
-
-            val body = response.body?.string() ?: ""
-            val json = if (channel == "beta") {
-                val array = JSONArray(body)
-                if (array.length() == 0) {
-                    _status.value = OtaStatus.UpToDate
-                    return@withContext
-                }
-                array.getJSONObject(0)
-            } else {
-                JSONObject(body)
-            }
-            val tagName = json.optString("tag_name", "").trim()
-            val releaseName = json.optString("name", tagName)
-            val releaseNotes = json.optString("body", "Sem notas de atualização.")
-            val assets = json.optJSONArray("assets")
-
+            var tagName = ""
+            var releaseName = ""
+            var releaseNotes = ""
             var apkUrl: String? = null
-            var apkName: String = "Tai_update.apk"
+            var apkName = "Tai_update.apk"
 
-            if (assets != null) {
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    val name = asset.optString("name", "")
-                    if (name.endsWith(".apk", ignoreCase = true)) {
-                        apkUrl = asset.optString("browser_download_url")
-                        apkName = name
-                        break
+            // 1. Tenta carregar via CDN raw (não possui rate limit de 60 req/h do GitHub)
+            var loadedFromCdn = false
+            try {
+                val cdnReq = Request.Builder()
+                    .url(cdnManifestUrl)
+                    .header("User-Agent", "Tai-Android-App")
+                    .build()
+                client.newCall(cdnReq).execute().use { cdnResp ->
+                    if (cdnResp.isSuccessful) {
+                        val cdnBody = cdnResp.body?.string() ?: ""
+                        if (cdnBody.isNotEmpty()) {
+                            val cdnJson = JSONObject(cdnBody)
+                            tagName = cdnJson.optString("tagName", "").trim()
+                            releaseName = cdnJson.optString("releaseName", tagName)
+                            releaseNotes = cdnJson.optString("notes", "Sem notas de atualização.")
+                            apkUrl = cdnJson.optString("apkUrl", "")
+                            apkName = cdnJson.optString("apkName", "Tai_update.apk")
+                            if (tagName.isNotEmpty() && !apkUrl.isNullOrEmpty()) {
+                                loadedFromCdn = true
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            // 2. Se não carregou do CDN, recorre à API REST do GitHub
+            if (!loadedFromCdn) {
+                val url = if (channel == "beta") {
+                    "https://api.github.com/repos/$repoOwner/$repoName/releases?per_page=1"
+                } else {
+                    "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+                }
+                val request = Request.Builder()
+                    .url(url)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .header("User-Agent", "Tai-Android-App")
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        if (response.code == 404) {
+                            _status.value = OtaStatus.UpToDate
+                        } else if (response.code == 403) {
+                            _status.value = OtaStatus.Error("Limite da API do GitHub atingido temporariamente (HTTP 403).")
+                        } else {
+                            _status.value = OtaStatus.Error("Erro ao buscar atualizações (HTTP ${response.code})")
+                        }
+                        return@withContext
+                    }
+
+                    val body = response.body?.string() ?: ""
+                    val json = if (channel == "beta") {
+                        val array = JSONArray(body)
+                        if (array.length() == 0) {
+                            _status.value = OtaStatus.UpToDate
+                            return@withContext
+                        }
+                        array.getJSONObject(0)
+                    } else {
+                        JSONObject(body)
+                    }
+                    tagName = json.optString("tag_name", "").trim()
+                    releaseName = json.optString("name", tagName)
+                    releaseNotes = json.optString("body", "Sem notas de atualização.")
+                    val assets = json.optJSONArray("assets")
+
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.getJSONObject(i)
+                            val name = asset.optString("name", "")
+                            if (name.endsWith(".apk", ignoreCase = true)) {
+                                apkUrl = asset.optString("browser_download_url")
+                                apkName = name
+                                break
+                            }
+                        }
                     }
                 }
             }
 
-            if (apkUrl.isNullOrEmpty()) {
+            val finalApkUrl = apkUrl
+            if (finalApkUrl.isNullOrEmpty()) {
                 _status.value = OtaStatus.Error("Nenhum arquivo APK anexado ao release.")
                 return@withContext
             }
@@ -164,7 +202,7 @@ class OtaUpdateManager(private val context: Context) {
                     version = cleanTag,
                     title = releaseName,
                     changelog = releaseNotes,
-                    downloadUrl = apkUrl,
+                    downloadUrl = finalApkUrl,
                     assetName = apkName
                 )
 
