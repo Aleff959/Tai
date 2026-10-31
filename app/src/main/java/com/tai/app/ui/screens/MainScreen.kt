@@ -116,7 +116,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 6 - Faísca",
+                            text = "0.0.2 | Comp. 7 - Gilded",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -156,7 +156,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                     IconButton(
                         onClick = {
                             scope.launch {
-                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 6)
+                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 7)
                                 showOtaDialog = true
                             }
                         },
@@ -200,14 +200,15 @@ fun MainScreen(viewModel: DownloaderViewModel) {
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // Badges das redes suportadas - com ícones oficiais
+            // Badges das 4 redes suportadas - com ícones oficiais
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 PlatformBadge(name = "TikTok", iconRes = com.tai.app.R.drawable.ic_tiktok, tint = Color(0xFFFE2C55), modifier = Modifier.weight(1f))
                 PlatformBadge(name = "Reels", iconRes = com.tai.app.R.drawable.ic_instagram, tint = Color(0xFFE1306C), modifier = Modifier.weight(1f))
                 PlatformBadge(name = "X", iconRes = com.tai.app.R.drawable.ic_x_twitter, tint = Color.White, modifier = Modifier.weight(1f))
+                PlatformBadge(name = "YouTube", iconRes = com.tai.app.R.drawable.ic_youtube, tint = Color(0xFFFF0000), modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(30.dp))

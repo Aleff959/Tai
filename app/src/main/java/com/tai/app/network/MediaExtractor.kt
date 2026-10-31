@@ -1,5 +1,6 @@
 package com.tai.app.network
 
+import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
@@ -12,7 +13,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
-class MediaExtractor {
+class MediaExtractor(private val context: Context? = null) {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -21,10 +22,19 @@ class MediaExtractor {
         .followSslRedirects(true)
         .build()
 
+    private val modularManager = context?.let { ModularExtractorManager(it) }
+
     suspend fun extract(rawUrl: String): MediaItem = withContext(Dispatchers.IO) {
         val cleanUrl = sanitizeUrl(rawUrl)
 
+        // 1. Tenta extrair via módulo dinâmico modular (atualizável sem reinstalar APK)
+        modularManager?.tryExtract(cleanUrl)?.let { return@withContext it }
+
+        // 2. Extração nativa embutida
         when {
+            cleanUrl.contains("youtube.com", ignoreCase = true) || cleanUrl.contains("youtu.be", ignoreCase = true) -> {
+                extractYouTube(cleanUrl)
+            }
             cleanUrl.contains("tiktok.com", ignoreCase = true) -> extractTikTok(cleanUrl)
             cleanUrl.contains("twitter.com", ignoreCase = true) || cleanUrl.contains("x.com", ignoreCase = true) -> extractTwitter(cleanUrl)
             cleanUrl.contains("instagram.com", ignoreCase = true) -> extractInstagram(cleanUrl)
@@ -33,6 +43,10 @@ class MediaExtractor {
                 extractGeneric(cleanUrl)
             }
         }
+    }
+
+    private suspend fun extractYouTube(url: String): MediaItem {
+        return NativeYouTubeExtractor.extract(url)
     }
 
     private fun sanitizeUrl(input: String): String {

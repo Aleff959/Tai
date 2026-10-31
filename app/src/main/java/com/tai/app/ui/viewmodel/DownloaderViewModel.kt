@@ -43,7 +43,7 @@ sealed class DownloadState {
 
 class DownloaderViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val extractor = MediaExtractor()
+    private val extractor = MediaExtractor(application)
     private val storageManager = MediaStorageManager(application)
     private val synthesizer = VideoSynthesizer(application)
     val otaManager = OtaUpdateManager(application)
@@ -60,9 +60,9 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
     val pendingPhotoWithAudio: StateFlow<MediaItem?> = _pendingPhotoWithAudio.asStateFlow()
 
     init {
-        AppLogger.i("ViewModel", "DownloaderViewModel inicializado (0.0.2 | Comp. 6 - Faísca)")
+        AppLogger.i("ViewModel", "DownloaderViewModel inicializado (0.0.2 | Comp. 7 - Gilded)")
         viewModelScope.launch {
-            otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 6)
+            otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 7)
         }
     }
 
