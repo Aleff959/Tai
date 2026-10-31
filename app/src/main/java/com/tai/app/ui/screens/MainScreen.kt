@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -116,7 +117,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 9 - Indra",
+                            text = "0.0.2 | Comp. 10 - Juice",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -586,6 +587,44 @@ fun MainScreen(viewModel: DownloaderViewModel) {
         CatCompanionWidget(
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+
+        // Botão no extremo inferior direito para alternar entre Estável e Beta
+        val currentChannel by viewModel.updateChannel.collectAsState()
+        val isBeta = currentChannel == "beta"
+
+        Surface(
+            onClick = { viewModel.toggleUpdateChannel() },
+            color = if (isBeta) Color(0xFF241A0E) else DarkSurfaceVariant,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(
+                width = 1.dp,
+                color = if (isBeta) Color(0xFFFF9800) else CardBorder
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .background(
+                            color = if (isBeta) Color(0xFFFF9800) else NeonGreen,
+                            shape = CircleShape
+                        )
+                )
+                Text(
+                    text = if (isBeta) "Beta" else "Estável",
+                    color = if (isBeta) Color(0xFFFFB74D) else TextPrimary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
 
         // Diálogo para post com 1 foto e áudio
         if (pendingPhotoWithAudio != null) {

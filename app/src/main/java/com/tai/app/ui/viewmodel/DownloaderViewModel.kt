@@ -59,6 +59,20 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
     private val _pendingPhotoWithAudio = MutableStateFlow<MediaItem?>(null)
     val pendingPhotoWithAudio: StateFlow<MediaItem?> = _pendingPhotoWithAudio.asStateFlow()
 
+    private val _updateChannel = MutableStateFlow(otaManager.channel)
+    val updateChannel: StateFlow<String> = _updateChannel.asStateFlow()
+
+    fun toggleUpdateChannel(): String {
+        val newChannel = if (otaManager.channel == "stable") "beta" else "stable"
+        otaManager.channel = newChannel
+        _updateChannel.value = newChannel
+        AppLogger.action("Settings", "Canal de atualização alterado para: $newChannel")
+        viewModelScope.launch {
+            otaManager.checkForUpdates()
+        }
+        return newChannel
+    }
+
     init {
         AppLogger.i("ViewModel", "DownloaderViewModel inicializado")
         viewModelScope.launch {

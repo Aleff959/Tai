@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -51,6 +52,12 @@ class OtaUpdateManager(private val context: Context) {
     // Configurable repo: defaults to Aleff959/Tai
     var repoOwner: String = "Aleff959"
     var repoName: String = "Tai"
+
+    private val prefs = context.getSharedPreferences("ota_prefs", Context.MODE_PRIVATE)
+
+    var channel: String
+        get() = prefs.getString("update_channel", "stable") ?: "stable"
+        set(value) = prefs.edit().putString("update_channel", value).apply()
 
     private val _status = MutableStateFlow<OtaStatus>(OtaStatus.Idle)
     val status: StateFlow<OtaStatus> = _status.asStateFlow()
@@ -92,7 +99,11 @@ class OtaUpdateManager(private val context: Context) {
                 getLocalAppVersion()
             }
 
-            val url = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+            val url = if (channel == "beta") {
+                "https://api.github.com/repos/$repoOwner/$repoName/releases?per_page=1"
+            } else {
+                "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+            }
             val request = Request.Builder()
                 .url(url)
                 .header("Accept", "application/vnd.github.v3+json")
@@ -110,7 +121,16 @@ class OtaUpdateManager(private val context: Context) {
             }
 
             val body = response.body?.string() ?: ""
-            val json = JSONObject(body)
+            val json = if (channel == "beta") {
+                val array = JSONArray(body)
+                if (array.length() == 0) {
+                    _status.value = OtaStatus.UpToDate
+                    return@withContext
+                }
+                array.getJSONObject(0)
+            } else {
+                JSONObject(body)
+            }
             val tagName = json.optString("tag_name", "").trim()
             val releaseName = json.optString("name", tagName)
             val releaseNotes = json.optString("body", "Sem notas de atualização.")
