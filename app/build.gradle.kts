@@ -20,7 +20,8 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("${rootDir}/tai-release-key.jks")
+            val userHome = System.getProperty("user.home")
+            storeFile = file("$userHome/.android/keystores/tai-release-key.jks")
             storePassword = "tai123456"
             keyAlias = "tai_key"
             keyPassword = "tai123456"
