@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tai.app.core.TaiCoreConfig
 import com.tai.app.ota.OtaStatus
 import com.tai.app.ui.screens.components.CatCompanionWidget
 import com.tai.app.ui.screens.components.LogsSheetDialog
@@ -44,7 +45,10 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
-fun MainScreen(viewModel: DownloaderViewModel) {
+fun MainScreen(
+    viewModel: DownloaderViewModel,
+    onHotReloadCore: () -> Unit = {}
+) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
@@ -62,6 +66,10 @@ fun MainScreen(viewModel: DownloaderViewModel) {
     LaunchedEffect(otaStatus) {
         if (otaStatus is OtaStatus.UpdateAvailable) {
             showOtaDialog = true
+        } else if (otaStatus is OtaStatus.ReadyToHotSwap) {
+            showOtaDialog = false
+            viewModel.otaManager.resetStatus()
+            onHotReloadCore()
         }
     }
 
@@ -117,7 +125,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 13 - Miles",
+                            text = TaiCoreConfig.fullLabel(),
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -695,9 +703,9 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                 onInstall = { apkFile ->
                     viewModel.otaManager.launchInstaller(apkFile)
                 },
-                onDownload = { url, name ->
+                onDownload = { url, name, comp, isHotSwap ->
                     scope.launch {
-                        viewModel.otaManager.downloadAndPrepareInstall(url, name)
+                        viewModel.otaManager.downloadAndPrepareInstall(url, name, comp, isHotSwap)
                     }
                 }
             )
@@ -799,7 +807,7 @@ fun OtaDialog(
     status: OtaStatus,
     onDismiss: () -> Unit,
     onInstall: (java.io.File) -> Unit,
-    onDownload: (String, String) -> Unit
+    onDownload: (String, String, Int, Boolean) -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -829,13 +837,25 @@ fun OtaDialog(
                         Text(text = status.title, color = NeonCyan, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Text(text = status.changelog, color = TextSecondary, fontSize = 12.sp, maxLines = 5)
 
+                        if (status.isHotSwap) {
+                            Text(
+                                text = "⚡ Atualização Modular Direta (Sem Play Protect)",
+                                color = NeonGreen,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
                         Button(
-                            onClick = { onDownload(status.downloadUrl, status.assetName) },
+                            onClick = { onDownload(status.downloadUrl, status.assetName, status.targetComp, status.isHotSwap) },
                             colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = PureBlack),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth().height(48.dp)
                         ) {
-                            Text(text = "Baixar e Atualizar", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (status.isHotSwap) "Atualizar Instantaneamente ⚡" else "Baixar e Atualizar",
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
                         TextButton(onClick = onDismiss) { Text("Depois", color = TextMuted) }

@@ -11,6 +11,8 @@ import android.provider.Settings
 import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
+import com.tai.app.core.CoreHostManager
+import com.tai.app.core.TaiCoreConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,10 +35,13 @@ sealed class OtaStatus {
         val title: String,
         val changelog: String,
         val downloadUrl: String,
-        val assetName: String
+        val assetName: String,
+        val targetComp: Int = 0,
+        val isHotSwap: Boolean = false
     ) : OtaStatus()
     data class Downloading(val progressPercent: Int) : OtaStatus()
     data class ReadyToInstall(val apkFile: File) : OtaStatus()
+    data class ReadyToHotSwap(val targetComp: Int) : OtaStatus()
     data class Error(val message: String) : OtaStatus()
 }
 
@@ -74,16 +79,18 @@ class OtaUpdateManager(private val context: Context) {
                 @Suppress("DEPRECATION")
                 context.packageManager.getPackageInfo(context.packageName, 0)
             }
-            val vName = pInfo.versionName ?: "0.0.1"
-            val vCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val apkVersionName = pInfo.versionName ?: TaiCoreConfig.versionName()
+            val apkComp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 pInfo.longVersionCode.toInt()
             } else {
                 @Suppress("DEPRECATION")
                 pInfo.versionCode
             }
-            Pair(vName, vCode)
+            val coreComp = TaiCoreConfig.compNumber()
+            val activeComp = CoreHostManager.getActiveCompilation(context, maxOf(apkComp, coreComp))
+            Pair(apkVersionName, activeComp)
         } catch (_: Exception) {
-            Pair("0.0.1", 1)
+            Pair(TaiCoreConfig.versionName(), TaiCoreConfig.compNumber())
         }
     }
 
@@ -107,6 +114,8 @@ class OtaUpdateManager(private val context: Context) {
             var releaseNotes = ""
             var apkUrl: String? = null
             var apkName = "Tai_update.apk"
+            var remoteComp = 0
+            var isHotSwap = false
 
             // 1. Tenta carregar via CDN raw (não possui rate limit de 60 req/h do GitHub)
             var loadedFromCdn = false
@@ -123,8 +132,17 @@ class OtaUpdateManager(private val context: Context) {
                             tagName = cdnJson.optString("tagName", "").trim()
                             releaseName = cdnJson.optString("releaseName", tagName)
                             releaseNotes = cdnJson.optString("notes", "Sem notas de atualização.")
-                            apkUrl = cdnJson.optString("apkUrl", "")
-                            apkName = cdnJson.optString("apkName", "Tai_update.apk")
+                            remoteComp = cdnJson.optInt("comp", 0)
+                            val dexUrl = cdnJson.optString("dexUrl", "").trim()
+                            if (dexUrl.isNotEmpty()) {
+                                apkUrl = dexUrl
+                                apkName = "taicore_v$remoteComp.dex"
+                                isHotSwap = true
+                            } else {
+                                apkUrl = cdnJson.optString("apkUrl", "")
+                                apkName = cdnJson.optString("apkName", "Tai_update.apk")
+                                isHotSwap = false
+                            }
                             if (tagName.isNotEmpty() && !apkUrl.isNullOrEmpty()) {
                                 loadedFromCdn = true
                             }
@@ -175,13 +193,27 @@ class OtaUpdateManager(private val context: Context) {
                     val assets = json.optJSONArray("assets")
 
                     if (assets != null) {
+                        // Prefere módulo .dex (Two-Stage Hot-Swap) se disponível no release
                         for (i in 0 until assets.length()) {
                             val asset = assets.getJSONObject(i)
                             val name = asset.optString("name", "")
-                            if (name.endsWith(".apk", ignoreCase = true)) {
+                            if (name.endsWith(".dex", ignoreCase = true)) {
                                 apkUrl = asset.optString("browser_download_url")
                                 apkName = name
+                                isHotSwap = true
                                 break
+                            }
+                        }
+                        if (apkUrl.isNullOrEmpty()) {
+                            for (i in 0 until assets.length()) {
+                                val asset = assets.getJSONObject(i)
+                                val name = asset.optString("name", "")
+                                if (name.endsWith(".apk", ignoreCase = true)) {
+                                    apkUrl = asset.optString("browser_download_url")
+                                    apkName = name
+                                    isHotSwap = false
+                                    break
+                                }
                             }
                         }
                     }
@@ -190,12 +222,20 @@ class OtaUpdateManager(private val context: Context) {
 
             val finalApkUrl = apkUrl
             if (finalApkUrl.isNullOrEmpty()) {
-                _status.value = OtaStatus.Error("Nenhum arquivo APK anexado ao release.")
+                _status.value = OtaStatus.Error("Nenhum arquivo de atualização anexado ao release.")
                 return@withContext
             }
 
             val cleanTag = tagName.removePrefix("v").trim()
-            val hasNewVersion = isVersionNewer(cleanTag, currentVersion, currentComp)
+            if (remoteComp <= 0 && cleanTag.contains("Comp", ignoreCase = true)) {
+                remoteComp = Regex("""\d+""").findAll(cleanTag.substringAfter("Comp")).firstOrNull()?.value?.toIntOrNull() ?: 0
+            }
+
+            val hasNewVersion = if (remoteComp > 0) {
+                remoteComp > currentComp
+            } else {
+                isVersionNewer(cleanTag, currentVersion, currentComp)
+            }
 
             if (hasNewVersion) {
                 _status.value = OtaStatus.UpdateAvailable(
@@ -203,7 +243,9 @@ class OtaUpdateManager(private val context: Context) {
                     title = releaseName,
                     changelog = releaseNotes,
                     downloadUrl = finalApkUrl,
-                    assetName = apkName
+                    assetName = apkName,
+                    targetComp = remoteComp,
+                    isHotSwap = isHotSwap
                 )
 
                 // Previne repetição contínua de notificação para a mesma versão
@@ -222,7 +264,12 @@ class OtaUpdateManager(private val context: Context) {
         }
     }
 
-    suspend fun downloadAndPrepareInstall(downloadUrl: String, fileName: String) = withContext(Dispatchers.IO) {
+    suspend fun downloadAndPrepareInstall(
+        downloadUrl: String,
+        fileName: String,
+        targetComp: Int = 0,
+        isHotSwap: Boolean = false
+    ) = withContext(Dispatchers.IO) {
         _status.value = OtaStatus.Downloading(0)
         try {
             val request = Request.Builder()
@@ -239,8 +286,20 @@ class OtaUpdateManager(private val context: Context) {
             val responseBody = response.body ?: throw Exception("Corpo da resposta vazio")
             val contentLength = responseBody.contentLength()
 
-            val updateDir = File(context.cacheDir, "updates").apply { mkdirs() }
-            val outputFile = File(updateDir, fileName)
+            val isDexModule = isHotSwap || fileName.endsWith(".dex", ignoreCase = true)
+            val resolvedComp = if (targetComp > 0) targetComp else TaiCoreConfig.compNumber() + 1
+
+            val outputFile = if (isDexModule) {
+                CoreHostManager.getPendingTempFile(context, resolvedComp)
+            } else {
+                val updateDir = File(context.cacheDir, "updates").apply { mkdirs() }
+                File(updateDir, fileName)
+            }
+
+            if (outputFile.exists()) {
+                outputFile.setWritable(true)
+                outputFile.delete()
+            }
 
             responseBody.byteStream().use { input ->
                 FileOutputStream(outputFile).use { output ->
@@ -260,10 +319,19 @@ class OtaUpdateManager(private val context: Context) {
                 }
             }
 
-            _status.value = OtaStatus.ReadyToInstall(outputFile)
+            if (isDexModule) {
+                val staged = CoreHostManager.stagePendingUpdate(context, resolvedComp, outputFile)
+                if (staged) {
+                    _status.value = OtaStatus.ReadyToHotSwap(resolvedComp)
+                } else {
+                    _status.value = OtaStatus.Error("BootGuard: O módulo baixado falhou na verificação de integridade.")
+                }
+            } else {
+                _status.value = OtaStatus.ReadyToInstall(outputFile)
+            }
 
         } catch (e: Exception) {
-            _status.value = OtaStatus.Error("Erro ao baixar APK: ${e.message}")
+            _status.value = OtaStatus.Error("Erro ao baixar atualização: ${e.message}")
         }
     }
 

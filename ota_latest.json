@@ -1,9 +1,10 @@
 {
   "version": "0.0.2",
-  "comp": 13,
-  "tagName": "v0.0.2_Comp13",
-  "releaseName": "Taí! 0.0.2 | Comp. 13 - Miles (Beta)",
-  "notes": "Validação ponta a ponta do canal OTA Beta.",
-  "apkUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp13/Tai_0.0.2_Comp13.apk",
-  "apkName": "Tai_0.0.2_Comp13.apk"
+  "comp": 15,
+  "tagName": "v0.0.2_Comp15",
+  "releaseName": "Taí! 0.0.2 | Comp. 15 - Ororo (Beta)",
+  "notes": "Atualização modular instantânea via Two-Stage Core (taicore.dex) sem abrir instalador do Android e sem Play Protect!",
+  "dexUrl": "https://raw.githubusercontent.com/Aleff959/Tai/beta/modules/taicore.dex",
+  "apkUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp15/Tai_0.0.2_Comp15.apk",
+  "apkName": "Tai_0.0.2_Comp15.apk"
 }
