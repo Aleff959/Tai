@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -114,7 +115,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 4 - Darui",
+                            text = "0.0.2 | Comp. 5 - Electro",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
@@ -140,30 +141,47 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         )
                     }
 
+                    val hasUpdate = otaStatus is OtaStatus.UpdateAvailable
+                    val updatePulseAlpha by rememberInfiniteTransition(label = "otaPulse").animateFloat(
+                        initialValue = 0.4f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "otaAlpha"
+                    )
+
                     IconButton(
                         onClick = {
                             scope.launch {
-                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 4)
+                                viewModel.otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 5)
                                 showOtaDialog = true
                             }
                         },
                         modifier = Modifier
                             .size(44.dp)
                             .background(DarkSurfaceVariant, CircleShape)
-                            .border(1.dp, CardBorder, CircleShape)
+                            .border(
+                                width = if (hasUpdate) 1.5.dp else 1.dp,
+                                color = if (hasUpdate) NeonGreen.copy(alpha = updatePulseAlpha) else CardBorder,
+                                shape = CircleShape
+                            )
                     ) {
-                        if (otaStatus is OtaStatus.UpdateAvailable) {
-                            Box {
+                        if (hasUpdate) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Rounded.SystemUpdate,
                                     contentDescription = "Atualização Disponível",
                                     tint = NeonGreen,
                                     modifier = Modifier.size(22.dp)
                                 )
+                                // Ponto de notificação pulsante no topo do ícone
                                 Box(
                                     modifier = Modifier
-                                        .size(8.dp)
-                                        .background(NeonGreen, CircleShape)
+                                        .size(10.dp)
+                                        .background(NeonGreen.copy(alpha = updatePulseAlpha), CircleShape)
+                                        .border(1.5.dp, PureBlack, CircleShape)
                                         .align(Alignment.TopEnd)
                                 )
                             }

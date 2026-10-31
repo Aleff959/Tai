@@ -60,9 +60,9 @@ class DownloaderViewModel(application: Application) : AndroidViewModel(applicati
     val pendingPhotoWithAudio: StateFlow<MediaItem?> = _pendingPhotoWithAudio.asStateFlow()
 
     init {
-        AppLogger.i("ViewModel", "DownloaderViewModel inicializado (0.0.2 | Comp. 4 - Darui)")
+        AppLogger.i("ViewModel", "DownloaderViewModel inicializado (0.0.2 | Comp. 5 - Electro)")
         viewModelScope.launch {
-            otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 4)
+            otaManager.checkForUpdates(currentVersion = "0.0.2", currentComp = 5)
         }
     }
 

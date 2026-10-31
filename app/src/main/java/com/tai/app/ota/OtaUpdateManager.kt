@@ -1,10 +1,14 @@
 package com.tai.app.ota
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -110,6 +114,7 @@ class OtaUpdateManager(private val context: Context) {
                     downloadUrl = apkUrl,
                     assetName = apkName
                 )
+                showUpdateNotification(releaseName, "Nova versão disponível: $releaseName. Toque para atualizar.")
             } else {
                 _status.value = OtaStatus.UpToDate
             }
@@ -190,6 +195,54 @@ class OtaUpdateManager(private val context: Context) {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(installIntent)
+    }
+
+    private fun showUpdateNotification(title: String, message: String) {
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                ?: return
+
+            val channelId = "tai_ota_updates"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Atualizações do Taí",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Avisos de novas versões e compilações do Taí"
+                    enableLights(true)
+                    enableVibration(true)
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+
+            val pendingIntent = if (launchIntent != null) {
+                PendingIntent.getActivity(
+                    context,
+                    0,
+                    launchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+                )
+            } else null
+
+            val notification = NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+
+            notificationManager.notify(1001, notification)
+        } catch (_: Exception) {
+            // Em caso de restrição de permissão em versões específicas do Android
+        }
     }
 
     private fun isVersionNewer(remoteVersion: String, localVersion: String, localComp: Int): Boolean {
