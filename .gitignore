@@ -11,6 +11,7 @@
 *.apk
 *.ap_
 *.dex
+!modules/taicore.dex
 
 # Keystores & Signing Keys
 *.jks
