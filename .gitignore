@@ -11,3 +11,9 @@
 *.apk
 *.ap_
 *.dex
+
+# Keystores & Signing Keys
+*.jks
+*.keystore
+*.key
+signing.properties
