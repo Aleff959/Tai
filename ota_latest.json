@@ -1,10 +1,10 @@
 {
   "version": "0.0.2",
-  "comp": 15,
-  "tagName": "v0.0.2_Comp15",
-  "releaseName": "Taí! 0.0.2 | Comp. 15 - Ororo (Beta)",
-  "notes": "Atualização modular instantânea via Two-Stage Core (taicore.dex) sem abrir instalador do Android e sem Play Protect!",
-  "dexUrl": "https://raw.githubusercontent.com/Aleff959/Tai/beta/modules/taicore.dex",
-  "apkUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp15/Tai_0.0.2_Comp15.apk",
-  "apkName": "Tai_0.0.2_Comp15.apk"
+  "comp": 16,
+  "tagName": "v0.0.2_Comp16",
+  "releaseName": "Taí! 0.0.2 | Comp. 16 - Pierce (Beta)",
+  "notes": "Atualização modular instantânea via Two-Stage Core (taicore.dex) - Comp. 16 - Pierce (Sem Play Protect)!",
+  "dexUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp16/taicore.dex",
+  "apkUrl": "https://github.com/Aleff959/Tai/releases/download/v0.0.2_Comp16/Tai_0.0.2_Comp16.apk",
+  "apkName": "Tai_0.0.2_Comp16.apk"
 }

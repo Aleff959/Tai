@@ -107,7 +107,7 @@ class OtaUpdateManager(private val context: Context) {
             }
 
             val branch = if (channel == "beta") "beta" else "main"
-            val cdnManifestUrl = "https://raw.githubusercontent.com/$repoOwner/$repoName/$branch/ota_latest.json"
+            val cdnManifestUrl = "https://raw.githubusercontent.com/$repoOwner/$repoName/$branch/ota_latest.json?cb=${System.currentTimeMillis()}"
 
             var tagName = ""
             var releaseName = ""
@@ -151,8 +151,8 @@ class OtaUpdateManager(private val context: Context) {
                 }
             } catch (_: Exception) {}
 
-            // 2. Se não carregou do CDN, recorre à API REST do GitHub
-            if (!loadedFromCdn) {
+            // 2. Se não carregou do CDN ou se o CDN ainda estiver em cache antigo (<= currentComp), consulta a API REST
+            if (!loadedFromCdn || remoteComp <= currentComp) {
                 val url = if (channel == "beta") {
                     "https://api.github.com/repos/$repoOwner/$repoName/releases?per_page=1"
                 } else {
@@ -164,59 +164,73 @@ class OtaUpdateManager(private val context: Context) {
                     .header("User-Agent", "Tai-Android-App")
                     .build()
 
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        if (response.code == 404) {
-                            _status.value = OtaStatus.UpToDate
-                        } else if (response.code == 403) {
-                            _status.value = OtaStatus.Error("Limite da API do GitHub atingido temporariamente (HTTP 403).")
-                        } else {
-                            _status.value = OtaStatus.Error("Erro ao buscar atualizações (HTTP ${response.code})")
-                        }
-                        return@withContext
-                    }
-
-                    val body = response.body?.string() ?: ""
-                    val json = if (channel == "beta") {
-                        val array = JSONArray(body)
-                        if (array.length() == 0) {
-                            _status.value = OtaStatus.UpToDate
-                            return@withContext
-                        }
-                        array.getJSONObject(0)
-                    } else {
-                        JSONObject(body)
-                    }
-                    tagName = json.optString("tag_name", "").trim()
-                    releaseName = json.optString("name", tagName)
-                    releaseNotes = json.optString("body", "Sem notas de atualização.")
-                    val assets = json.optJSONArray("assets")
-
-                    if (assets != null) {
-                        // Prefere módulo .dex (Two-Stage Hot-Swap) se disponível no release
-                        for (i in 0 until assets.length()) {
-                            val asset = assets.getJSONObject(i)
-                            val name = asset.optString("name", "")
-                            if (name.endsWith(".dex", ignoreCase = true)) {
-                                apkUrl = asset.optString("browser_download_url")
-                                apkName = name
-                                isHotSwap = true
-                                break
+                try {
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            if (!loadedFromCdn) {
+                                if (response.code == 404) {
+                                    _status.value = OtaStatus.UpToDate
+                                } else if (response.code == 403) {
+                                    _status.value = OtaStatus.Error("Limite da API do GitHub atingido temporariamente (HTTP 403).")
+                                } else {
+                                    _status.value = OtaStatus.Error("Erro ao buscar atualizações (HTTP ${response.code})")
+                                }
+                                return@withContext
                             }
-                        }
-                        if (apkUrl.isNullOrEmpty()) {
-                            for (i in 0 until assets.length()) {
-                                val asset = assets.getJSONObject(i)
-                                val name = asset.optString("name", "")
-                                if (name.endsWith(".apk", ignoreCase = true)) {
-                                    apkUrl = asset.optString("browser_download_url")
-                                    apkName = name
-                                    isHotSwap = false
-                                    break
+                        } else {
+                            val body = response.body?.string() ?: ""
+                            val json = if (channel == "beta") {
+                                val array = JSONArray(body)
+                                if (array.length() == 0) {
+                                    if (!loadedFromCdn) {
+                                        _status.value = OtaStatus.UpToDate
+                                        return@withContext
+                                    }
+                                    null
+                                } else {
+                                    array.getJSONObject(0)
+                                }
+                            } else {
+                                JSONObject(body)
+                            }
+                            if (json != null) {
+                                tagName = json.optString("tag_name", "").trim()
+                                releaseName = json.optString("name", tagName)
+                                releaseNotes = json.optString("body", "Sem notas de atualização.")
+                                remoteComp = 0
+                                apkUrl = null
+                                val assets = json.optJSONArray("assets")
+
+                                if (assets != null) {
+                                    // Prefere módulo .dex (Two-Stage Hot-Swap) se disponível no release
+                                    for (i in 0 until assets.length()) {
+                                        val asset = assets.getJSONObject(i)
+                                        val name = asset.optString("name", "")
+                                        if (name.endsWith(".dex", ignoreCase = true)) {
+                                            apkUrl = asset.optString("browser_download_url")
+                                            apkName = name
+                                            isHotSwap = true
+                                            break
+                                        }
+                                    }
+                                    if (apkUrl.isNullOrEmpty()) {
+                                        for (i in 0 until assets.length()) {
+                                            val asset = assets.getJSONObject(i)
+                                            val name = asset.optString("name", "")
+                                            if (name.endsWith(".apk", ignoreCase = true)) {
+                                                apkUrl = asset.optString("browser_download_url")
+                                                apkName = name
+                                                isHotSwap = false
+                                                break
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                } catch (_: Exception) {
+                    if (!loadedFromCdn) throw Exception("Falha de conexão ao verificar atualizações")
                 }
             }
 
