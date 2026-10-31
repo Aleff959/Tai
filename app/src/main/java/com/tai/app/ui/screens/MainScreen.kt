@@ -116,7 +116,7 @@ fun MainScreen(viewModel: DownloaderViewModel) {
                         modifier = Modifier.padding(top = 4.dp)
                     ) {
                         Text(
-                            text = "0.0.2 | Comp. 7 - Gilded",
+                            text = "0.0.2 | Comp. 8 - Hotspot",
                             color = NeonCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,

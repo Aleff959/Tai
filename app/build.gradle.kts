@@ -12,7 +12,7 @@ android {
         applicationId = "com.tai.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
+        versionCode = 8
         versionName = "0.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -98,5 +98,5 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // Native YouTube Extractor
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.24.4")
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.26.5")
 }
